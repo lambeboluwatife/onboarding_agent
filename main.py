@@ -64,14 +64,27 @@ class MailSenderTool:
 class WhatsappMessageSenderTool:
     def __init__(self):
         # Get whatsapp credentials from environment variables
-        twilio_account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-        twilio_auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        self.account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        self.auth_token = os.getenv("TWILIO_AUTH_TOKEN")
         self.whatsapp_from = os.getenv("WHATSAPP_FROM_NUMBER")
 
-        if not all([twilio_account_sid, twilio_auth_token, self.whatsapp_from]):
-            raise ValueError("Missing required WhatsApp configuration in environment variables")
+        print(f"WhatsApp Configuration:")
+        print(f"Account SID: {self.account_sid[:10]}...")  # Only show first 10 chars for security
+        print(f"From Number: {self.whatsapp_from}")
 
-        self.client = Client(twilio_account_sid, twilio_auth_token)
+        if not all([self.account_sid, self.auth_token, self.whatsapp_from]):
+            missing = []
+            if not self.account_sid: missing.append("TWILIO_ACCOUNT_SID")
+            if not self.auth_token: missing.append("TWILIO_AUTH_TOKEN")
+            if not self.whatsapp_from: missing.append("WHATSAPP_FROM_NUMBER")
+            raise ValueError(f"Missing required WhatsApp configuration in environment variables: {', '.join(missing)}")
+
+        try:
+            self.client = Client(self.account_sid, self.auth_token)
+            print("✅ Successfully initialized Twilio client")
+        except Exception as e:
+            print(f"❌ Failed to initialize Twilio client: {str(e)}")
+            raise
 
     def send_message(self, phone_number: str, message_body: str) -> str:
         """Send a WhatsApp message to the specified phone number.
@@ -84,15 +97,25 @@ class WhatsappMessageSenderTool:
             str: Status message indicating whether the message was sent successfully
         """
         try:
+            from_whatsapp = f"whatsapp:{self.whatsapp_from}"
+            to_whatsapp = f"whatsapp:{phone_number}"
+            
+            print(f"\nSending WhatsApp message:")
+            print(f"From: {from_whatsapp}")
+            print(f"To: {to_whatsapp}")
+            print(f"Message: {message_body}")
+            
             message = self.client.messages.create(
-                from_=f"whatsapp:{self.whatsapp_from}",
+                from_=from_whatsapp,
                 body=message_body,
-                to=f"whatsapp:{phone_number}"
+                to=to_whatsapp
             )
+            print(f"✅ Message sent successfully. SID: {message.sid}")
             return f"✅ WhatsApp message sent to {phone_number}"
         except Exception as e:
-            return f"❌ Error sending WhatsApp message: {str(e)}"
-
+            error_msg = f"❌ Error sending WhatsApp message: {str(e)}"
+            print(error_msg)
+            return error_msg
 
 @tool("Email Sender")
 def send_emails(onboarding_data: str) -> str:
@@ -195,9 +218,35 @@ resources_agent = Agent(
 finalization_agent = Agent(
     name="Finalization Agent",
     role="Finalization Agent",
-    goal="Send final onboarding communications to the teacher",
-    backstory="""You are responsible for finalizing the onboarding process by sending welcome communications to the teacher.
-    You craft personalized messages that are professional and welcoming.""",
+    goal="Ensures all onboarding steps are completed and documented with detailed information",
+    backstory="""You are a finalization agent that confirms all onboarding steps are properly completed and documented. 
+    You ensure a smooth transition for new teachers by sending a comprehensive welcome email that includes:
+    1. Their assigned role (either senior, junior, or others) and responsibilities
+    2. Available resources and how to access them
+    3. Management structure details (generate appropriate details for):
+       - Direct supervisor's information (Mrs. Jane Smith, Head of Mathematics Department, jane.smith@glorylinkschools.com)
+       - Department admin's information (Mr. Mark Johnson, mark.johnson@glorylinkschools.com)
+       - Team meeting schedule (every Monday at 3:00 PM)
+       - Mentoring program details (if applicable)
+    4. Next steps and important dates:
+       - First day orientation: Monday, February 24, 2025, 9:00 AM
+       - Department meeting: Tuesday, February 25, 2025, 2:00 PM
+       - IT system training: Wednesday, February 26, 2025, 10:00 AM
+       - First team meeting: According to role's schedule in first week
+       - Required documentation submission deadline: Friday, February 28, 2025
+    
+    The email should be professional, welcoming, and include all necessary details for the teacher to start successfully.
+    
+    The email must be signed with the following format:
+
+    Best regards,
+    
+    Boluwatife Lambe
+    Principal
+    Glorylink Schools
+    Email: boluwatifelambe@gmail.com
+    Tel: +2348083647531
+    """,
     llm=llm,
     tools=[send_emails, send_whatsapp_message],
     allow_delegation=False,
@@ -264,14 +313,35 @@ finalize_onboarding_task = Task(
     
     1. Send a detailed welcome email containing:
        - A warm welcome message
-       - Their assigned role and responsibilities
-       - Important school policies
-       - Next steps and orientation details
-       - Contact information for their department head
-       The email should be signed by:
+       - Their assigned role and specific responsibilities
+       - Available resources with access instructions:
+         * Teacher's Dashboard
+         * Online Assessment Tool
+         * Grade-Specific Textbooks
+         * Digital Learning Resources
+         * Grade Book
+         * Classroom Supplies
+         * Professional Development Workshops
+       - Management structure:
+         * Direct supervisor: Mrs. Jane Smith (Head of Mathematics Department)
+         * Department admin: Mr. Mark Johnson
+         * Team meetings: Every Monday at 3:00 PM
+         * Mentoring program details (if senior teacher)
+       - Important dates:
+         * First day orientation: Monday, February 24, 2025, 9:00 AM
+         * Department meeting: Tuesday, February 25, 2025, 2:00 PM
+         * IT system training: Wednesday, February 26, 2025, 10:00 AM
+         * Documentation deadline: Friday, February 28, 2025
+       
+       The email must end with this exact signature format:
+
+       Best regards,
+
        Boluwatife Lambe
        Principal
        Glorylink Schools
+       Email: boluwatifelambe@gmail.com
+       Tel: +2348083647531
     
     2. Send a WhatsApp message with the following format:
        "🎉 Congratulations [Teacher Name]! Your onboarding to Glorylink Schools is complete. We've sent a detailed welcome package to your email ([Email Address]). Please check it for important information about your role and next steps. We're excited to have you join our team! 🌟"
@@ -287,15 +357,97 @@ finalize_onboarding_task = Task(
     expected_output="Confirmation of completed onboarding with detailed welcome email and WhatsApp message sent"
 )
 
-# Create Crew with workflow
-onboarding_crew = Crew(
-    agents=[recruitment_agent, role_assignment_agent, resources_agent, finalization_agent],
-    tasks=[gather_info_task, assign_role_task, provide_resources_task, finalize_onboarding_task]
-)
+def create_onboarding_crew():
+    return Crew(
+        agents=[recruitment_agent, role_assignment_agent, resources_agent, finalization_agent],
+        tasks=[gather_info_task, assign_role_task, provide_resources_task, finalize_onboarding_task],
+        verbose=True
+    )
 
-# Execute the workflow with teacher info
-teacher_info = {
-    "teacher_info": "Name: Lambe Boluwatife, Subject: Mathematics, Experience: 5 years, Email: danibholie@gmail.com, Phone Number: +2348083647531"
-}
-result = onboarding_crew.kickoff(inputs=teacher_info)
-print("\nOnboarding Result:", result)
+def onboard_teachers(teachers_list):
+    """
+    Onboard multiple teachers simultaneously.
+    
+    Args:
+        teachers_list (list): List of dictionaries containing teacher information.
+        Each dictionary should have the format:
+        {
+            "name": "Teacher Name",
+            "subject": "Subject",
+            "experience": "X years",
+            "email": "teacher@email.com",
+            "phone_number": "+1234567890"
+        }
+    
+    Returns:
+        dict: Dictionary with results for each teacher
+    """
+    results = {}
+    onboarding_crew = create_onboarding_crew()
+    
+    for teacher in teachers_list:
+        try:
+            # Format teacher info as required by the crew
+            teacher_info = {
+                "teacher_info": f"Name: {teacher['name']}, "
+                               f"Subject: {teacher['subject']}, "
+                               f"Experience: {teacher['experience']}, "
+                               f"Email: {teacher['email']}, "
+                               f"Phone Number: {teacher['phone_number']}"
+            }
+            
+            # Run onboarding process for this teacher
+            result = onboarding_crew.kickoff(inputs=teacher_info)
+            results[teacher['name']] = {
+                "status": "success",
+                "result": result
+            }
+            print(f"\nSuccessfully onboarded: {teacher['name']}")
+            
+        except Exception as e:
+            results[teacher['name']] = {
+                "status": "failed",
+                "error": str(e)
+            }
+            print(f"\nFailed to onboard {teacher['name']}: {str(e)}")
+    
+    return results
+
+# Example usage with multiple teachers
+if __name__ == "__main__":
+    teachers_to_onboard = [
+        {
+            "name": "Lambe Boluwatife",
+            "subject": "Mathematics",
+            "experience": "5 years",
+            "email": "danibholie@gmail.com",
+            "phone_number": "+2348083647531"
+        },
+        {
+            "name": "John Smith",
+            "subject": "Physics",
+            "experience": "3 years",
+            "email": "john.smith@gmail.com",
+            "phone_number": "+2348012345678"
+        },
+        {
+            "name": "Sarah Johnson",
+            "subject": "Chemistry",
+            "experience": "7 years",
+            "email": "sarah.j@gmail.com",
+            "phone_number": "+2348087654321"
+        }
+    ]
+    
+    print("Starting onboarding process for multiple teachers...")
+    results = onboard_teachers(teachers_to_onboard)
+    
+    # Print summary
+    print("\nOnboarding Summary:")
+    print("=" * 50)
+    for teacher_name, result in results.items():
+        status = "✅ Success" if result["status"] == "success" else "❌ Failed"
+        print(f"{teacher_name}: {status}")
+        if result["status"] == "failed":
+            print(f"  Error: {result['error']}")
+    print("=" * 50)
