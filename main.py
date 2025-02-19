@@ -11,6 +11,7 @@ import os
 import emails
 from utils import get_openai_ap_key
 from dotenv import load_dotenv
+from twilio.rest import Client
 
 load_dotenv()
 
@@ -28,6 +29,7 @@ llm = ChatOpenAI(model_name="gpt-4", temperature=0.7)
 
 
 from crewai.tools import tool
+
 class MailSenderTool:
     def __init__(self):
         # Get email credentials from environment variables
@@ -59,7 +61,39 @@ class MailSenderTool:
         else:
             return f"❌ Failed to send email. Status: {response.status_code}"
 
-# Tools
+class WhatsappMessageSenderTool:
+    def __init__(self):
+        # Get whatsapp credentials from environment variables
+        twilio_account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        twilio_auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        self.whatsapp_from = os.getenv("WHATSAPP_FROM_NUMBER")
+
+        if not all([twilio_account_sid, twilio_auth_token, self.whatsapp_from]):
+            raise ValueError("Missing required WhatsApp configuration in environment variables")
+
+        self.client = Client(twilio_account_sid, twilio_auth_token)
+
+    def send_message(self, phone_number: str, message_body: str) -> str:
+        """Send a WhatsApp message to the specified phone number.
+        
+        Args:
+            phone_number (str): The recipient's phone number in international format (e.g., +2348012345678)
+            message_body (str): The message to send
+        
+        Returns:
+            str: Status message indicating whether the message was sent successfully
+        """
+        try:
+            message = self.client.messages.create(
+                from_=f"whatsapp:{self.whatsapp_from}",
+                body=message_body,
+                to=f"whatsapp:{phone_number}"
+            )
+            return f"✅ WhatsApp message sent to {phone_number}"
+        except Exception as e:
+            return f"❌ Error sending WhatsApp message: {str(e)}"
+
+
 @tool("Email Sender")
 def send_emails(onboarding_data: str) -> str:
     """Send onboarding email to the newly appointed teacher.
@@ -86,6 +120,33 @@ def send_emails(onboarding_data: str) -> str:
         return result
     except Exception as e:
         return f"❌ Error sending email: {str(e)}"
+
+@tool("Whatsapp Message")
+def send_whatsapp_message(onboarding_data: str) -> str:
+    """Send onboarding whatsapp message to the newly appointed teacher.
+    
+    Args:
+        onboarding_data (str): JSON string containing teacher's phone number and message body
+    
+    Returns:
+        str: Status message indicating whether the message was sent successfully
+    """
+    try:
+        # Parse the onboarding data
+        import json
+        data = json.loads(onboarding_data)
+        
+        # Send the WhatsApp message
+        whatsapp_sender = WhatsappMessageSenderTool()
+        result = whatsapp_sender.send_message(
+            phone_number=data['phone_number'],
+            message_body=data['message_body']
+        )
+        
+        return result
+    except Exception as e:
+        return f"❌ Error in WhatsApp message sending process: {str(e)}"
+
 
 # Define Agents
 recruitment_agent = Agent(
@@ -134,32 +195,11 @@ resources_agent = Agent(
 finalization_agent = Agent(
     name="Finalization Agent",
     role="Finalization Agent",
-    goal="Ensures all onboarding steps are completed and documented.",
-    backstory="""You are a finalization agent that confirms all onboarding steps are properly completed and documented. 
-    You ensure a smooth transition for new teachers by sending a comprehensive welcome email that includes:
-    1. Their assigned role (either senior, junior, or others) and responsibilities
-    2. Available resources and how to access them
-    3. Management structure details (generate appropriate details for):
-       - Direct supervisor's information
-       - Department admin's information
-       - Team meeting schedule
-       - Mentoring program details (if applicable)
-    4. Next steps and important dates:
-       - First day orientation: Monday, February 24, 2025, 9:00 AM
-       - Department meeting: Tuesday, February 25, 2025, 2:00 PM
-       - IT system training: Wednesday, February 26, 2025, 10:00 AM
-       - First team meeting: According to role's schedule in first week
-       - Required documentation submission deadline: Friday, February 28, 2025
-    
-    5. The mail should be sent to the teacher's email from gather_info_task
-    The email should be signed by:
-    Boluwatife Lambe
-    Principal
-    Glorylink Schools
-    
-    Ensure ALL placeholder text is replaced with actual information from the previous tasks.""",
+    goal="Send final onboarding communications to the teacher",
+    backstory="""You are responsible for finalizing the onboarding process by sending welcome communications to the teacher.
+    You craft personalized messages that are professional and welcoming.""",
     llm=llm,
-    tools=[send_emails],
+    tools=[send_emails, send_whatsapp_message],
     allow_delegation=False,
     verbose=True
 )
@@ -172,9 +212,10 @@ gather_info_task = Task(
     - Subject
     - Years of Experience
     - Email
+    - Phone Number
     Return this information in a clear, structured format.""",
     agent=recruitment_agent,
-    expected_output="Structured teacher details including name, subject expertise, email and experience"
+    expected_output="Structured teacher details including name, subject expertise, email, phone number and experience"
 )
 
 assign_role_task = Task(
@@ -219,33 +260,31 @@ provide_resources_task = Task(
 )
 
 finalize_onboarding_task = Task(
-    description="""Generate a comprehensive welcome email using the information from previous tasks.
+    description="""Using the collected and verified teacher information, send the final onboarding communications:
     
-    1. Generate a complete welcome email that includes all onboarding information. The email content should be your complete output, formatted exactly as you want it to appear in the email.
+    1. Send a detailed welcome email containing:
+       - A warm welcome message
+       - Their assigned role and responsibilities
+       - Important school policies
+       - Next steps and orientation details
+       - Contact information for their department head
+       The email should be signed by:
+       Boluwatife Lambe
+       Principal
+       Glorylink Schools
     
-    2. Get the teacher's email address from the gather_info_task output.
+    2. Send a WhatsApp message with the following format:
+       "🎉 Congratulations [Teacher Name]! Your onboarding to Glorylink Schools is complete. We've sent a detailed welcome package to your email ([Email Address]). Please check it for important information about your role and next steps. We're excited to have you join our team! 🌟"
     
-    3. Use the send_emails tool by passing it a JSON string that contains:
-       - The teacher's email address
-       - Your complete email content
-       
-    To use the send_emails tool, first create a dictionary with the email address and your email content, then convert it to JSON with json.dumps, like this:
-    send_emails(json.dumps(dict(email=teacher_email, email_body=your_email_content)))
+    For both communications:
+    1. Use the teacher's information from the gather_info_task output
+    2. Use the send_emails tool for email (pass a JSON with 'email' and 'email_body')
+    3. Use the send_whatsapp_message tool for WhatsApp (pass a JSON with 'phone_number' and 'message_body')
     
-    Your output should be comprehensive and well-formatted, including all necessary information about:
-    - Role assignment and responsibilities
-    - Management structure and reporting lines
-    - Available resources and how to access them
-    - Important dates and next steps
-    - Any other relevant onboarding information
-    
-    The email will be automatically signed as:
-    Boluwatife Lambe
-    Principal
-    Glorylink Schools""",
+    Ensure ALL placeholder text is replaced with actual information from the previous tasks.""",
     context=[gather_info_task, assign_role_task, provide_resources_task],
     agent=finalization_agent,
-    expected_output="Confirmation of completed onboarding with detailed welcome email sent"
+    expected_output="Confirmation of completed onboarding with detailed welcome email and WhatsApp message sent"
 )
 
 # Create Crew with workflow
@@ -256,7 +295,7 @@ onboarding_crew = Crew(
 
 # Execute the workflow with teacher info
 teacher_info = {
-    "teacher_info": "Name: John Doe, Subject: Mathematics, Experience: 5 years, Email: danibholie@gmail.com"
+    "teacher_info": "Name: Lambe Boluwatife, Subject: Mathematics, Experience: 5 years, Email: danibholie@gmail.com, Phone Number: +2348083647531"
 }
 result = onboarding_crew.kickoff(inputs=teacher_info)
 print("\nOnboarding Result:", result)
