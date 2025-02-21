@@ -1,35 +1,35 @@
 # Predefined teacher roles and their requirements
 TEACHER_ROLES = {
-    "Senior Mathematics Teacher": {
+    "Principal Software Engineer": {
         "requirements": {
-            "subject": ["Mathematics"],
+            "subject": ["Software Engineering"],
+            "min_experience": 8,
+            "responsibilities": [
+                "Lead system architecture design",
+                "Mentor senior engineers",
+                "Drive technical decisions and innovation"
+            ]
+        }
+    },
+    "Senior Software Engineer": {
+        "requirements": {
+            "subject": ["Software Engineering"],
             "min_experience": 5,
             "responsibilities": [
-                "Lead curriculum development",
-                "Mentor junior teachers",
-                "Conduct advanced mathematics classes"
+                "Design and implement complex features",
+                "Code review and technical mentorship",
+                "Lead project implementations"
             ]
         }
     },
-    "Mathematics Teacher": {
+    "Software Engineer": {
         "requirements": {
-            "subject": ["Mathematics"],
-            "min_experience": 2,
-            "responsibilities": [
-                "Teach regular mathematics classes",
-                "Participate in curriculum planning",
-                "Provide student support"
-            ]
-        }
-    },
-    "Junior Mathematics Teacher": {
-        "requirements": {
-            "subject": ["Mathematics"],
+            "subject": ["Software Engineering"],
             "min_experience": 0,
             "responsibilities": [
-                "Assist in mathematics classes",
-                "Provide tutoring support",
-                "Learn from senior teachers"
+                "Develop and maintain software features",
+                "Write clean, testable code",
+                "Participate in code reviews"
             ]
         }
     }
@@ -37,150 +37,150 @@ TEACHER_ROLES = {
 
 # Predefined resources for each role
 ROLE_RESOURCES = {
-    "Senior Mathematics Teacher": [
+    "Principal Software Engineer": [
         {
             "type": "Software",
             "items": [
-                "Advanced Mathematical Modeling Software",
-                "Online Assessment Platform",
-                "Curriculum Planning Tools"
+                "Enterprise Architecture Tools",
+                "Cloud Platform Admin Access",
+                "Advanced Development Tools"
             ]
         },
         {
             "type": "Materials",
             "items": [
-                "Senior Mathematics Curriculum Guide",
-                "Advanced Problem Sets",
-                "Teacher Mentoring Guidelines"
+                "System Design Documentation",
+                "Architecture Decision Records",
+                "Technical Leadership Guidelines"
             ]
         },
         {
             "type": "Access",
             "items": [
-                "Department Head Portal",
-                "Curriculum Development Platform",
-                "Teacher Training Resources"
+                "All Production Systems",
+                "Technical Strategy Platform",
+                "Enterprise Resource Planning"
             ]
         }
     ],
-    "Mathematics Teacher": [
+    "Senior Software Engineer": [
         {
             "type": "Software",
             "items": [
-                "Basic Mathematical Software",
-                "Student Progress Tracking Tool",
-                "Interactive Learning Platform"
+                "Full Development Suite",
+                "CI/CD Pipeline Access",
+                "Testing Frameworks"
             ]
         },
         {
             "type": "Materials",
             "items": [
-                "Mathematics Curriculum Guide",
-                "Standard Problem Sets",
-                "Teaching Resources"
+                "Technical Documentation",
+                "Design Patterns Guide",
+                "Code Review Guidelines"
             ]
         },
         {
             "type": "Access",
             "items": [
-                "Teacher Portal",
-                "Learning Management System",
-                "Digital Library"
+                "Development Environment",
+                "Code Repository",
+                "Project Management Tools"
             ]
         }
     ],
-    "Junior Mathematics Teacher": [
+    "Software Engineer": [
         {
             "type": "Software",
             "items": [
-                "Basic Mathematical Software",
-                "Student Management System",
-                "Learning Resources Platform"
+                "IDE and Dev Tools",
+                "Version Control System",
+                "Bug Tracking System"
             ]
         },
         {
             "type": "Materials",
             "items": [
-                "Basic Mathematics Teaching Guide",
-                "Beginner Problem Sets",
-                "Teaching Assistant Resources"
+                "Coding Standards Guide",
+                "Development Tutorials",
+                "API Documentation"
             ]
         },
         {
             "type": "Access",
             "items": [
-                "Teaching Assistant Portal",
-                "Learning Resources Library",
-                "Training Materials"
+                "Development Portal",
+                "Learning Resources",
+                "Team Collaboration Tools"
             ]
         }
     ]
 }
 
-# School Information
+# Company Information
 SCHOOL_INFO = {
-    "name": "Glorylink Schools",
+    "name": "TechFlow Solutions",
     "principal": {
         "name": "Boluwatife Lambe",
-        "position": "Principal",
-        "email": "principal@glorylinkschools.edu",
-        "office": "Principal's Office, Main Building",
+        "position": "CTO",
+        "email": "cto@techflow.com",
+        "office": "Executive Floor, Tech Hub",
         "phone": "ext. 1001"
     }
 }
 
 # Management structure and contact information
 MANAGEMENT_STRUCTURE = {
-    "Senior Mathematics Teacher": {
+    "Principal Software Engineer": {
         "school": SCHOOL_INFO,
         "direct_supervisor": {
             "name": "Dr. Sarah Johnson",
-            "role": "Head of Mathematics Department",
-            "email": "sarah.johnson@glorylinkschools.edu",
-            "office": "Room 401, Academic Building",
+            "role": "VP of Engineering",
+            "email": "sarah.johnson@techflow.com",
+            "office": "Floor 4, Tech Hub",
             "office_hours": "Monday-Friday, 9:00 AM - 4:00 PM"
         },
         "department_admin": {
             "name": "Michael Chen",
-            "email": "m.chen@glorylinkschools.edu",
-            "office": "Room 400, Academic Building",
+            "email": "m.chen@techflow.com",
+            "office": "Floor 4, Tech Hub",
             "phone": "ext. 4001"
         },
-        "team_meetings": "Every Monday at 2:00 PM in Room 405"
+        "team_meetings": "Every Monday at 2:00 PM in Conference Room A"
     },
-    "Mathematics Teacher": {
+    "Senior Software Engineer": {
         "school": SCHOOL_INFO,
         "direct_supervisor": {
             "name": "Prof. Robert Martinez",
-            "role": "Senior Mathematics Coordinator",
-            "email": "r.martinez@glorylinkschools.edu",
-            "office": "Room 302, Academic Building",
+            "role": "Engineering Manager",
+            "email": "r.martinez@techflow.com",
+            "office": "Floor 3, Tech Hub",
             "office_hours": "Monday-Friday, 10:00 AM - 3:00 PM"
         },
         "department_admin": {
             "name": "Michael Chen",
-            "email": "m.chen@glorylinkschools.edu",
-            "office": "Room 400, Academic Building",
+            "email": "m.chen@techflow.com",
+            "office": "Floor 4, Tech Hub",
             "phone": "ext. 4001"
         },
-        "team_meetings": "Every Wednesday at 3:00 PM in Room 303"
+        "team_meetings": "Every Wednesday at 3:00 PM in Conference Room B"
     },
-    "Junior Mathematics Teacher": {
+    "Software Engineer": {
         "school": SCHOOL_INFO,
         "direct_supervisor": {
-            "name": "Prof. Emily Wong",
-            "role": "Junior Faculty Coordinator",
-            "email": "e.wong@glorylinkschools.edu",
-            "office": "Room 201, Academic Building",
+            "name": "Emily Wong",
+            "role": "Team Lead",
+            "email": "e.wong@techflow.com",
+            "office": "Floor 2, Tech Hub",
             "office_hours": "Monday-Friday, 9:30 AM - 4:30 PM"
         },
         "department_admin": {
             "name": "Michael Chen",
-            "email": "m.chen@glorylinkschools.edu",
-            "office": "Room 400, Academic Building",
+            "email": "m.chen@techflow.com",
+            "office": "Floor 4, Tech Hub",
             "phone": "ext. 4001"
         },
-        "team_meetings": "Every Tuesday at 1:00 PM in Room 205",
+        "team_meetings": "Every Tuesday at 1:00 PM in Conference Room C",
         "mentor_program": {
             "mentor": "Will be assigned during first team meeting",
             "mentoring_sessions": "Weekly, schedule to be determined with assigned mentor"
@@ -192,15 +192,15 @@ def get_suitable_role(subject, experience):
     """
     Determine the most suitable role based on subject and experience.
     """
-    if subject.lower() != "mathematics":
+    if subject.lower() != "software engineering":
         return None
     
-    if experience >= 5:
-        return "Senior Mathematics Teacher"
-    elif experience >= 2:
-        return "Mathematics Teacher"
+    if experience >= 8:
+        return "Principal Software Engineer"
+    elif experience >= 5:
+        return "Senior Software Engineer"
     else:
-        return "Junior Mathematics Teacher"
+        return "Software Engineer"
 
 def get_role_resources(role):
     """

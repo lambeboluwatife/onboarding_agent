@@ -12,6 +12,7 @@ import emails
 from utils import get_openai_ap_key
 from dotenv import load_dotenv
 from twilio.rest import Client
+from slack_sdk import WebClient
 
 load_dotenv()
 
@@ -71,6 +72,8 @@ class WhatsappMessageSenderTool:
         print(f"WhatsApp Configuration:")
         print(f"Account SID: {self.account_sid[:10]}...")  # Only show first 10 chars for security
         print(f"From Number: {self.whatsapp_from}")
+        print(f"NOTE: For trial accounts, recipients must first join your sandbox by sending")
+        print(f"'join <your-sandbox-keyword>' to {self.whatsapp_from}")
 
         if not all([self.account_sid, self.auth_token, self.whatsapp_from]):
             missing = []
@@ -116,6 +119,51 @@ class WhatsappMessageSenderTool:
             error_msg = f"❌ Error sending WhatsApp message: {str(e)}"
             print(error_msg)
             return error_msg
+
+class SlackMessageSenderTool:
+    def __init__(self):
+        # Get Slack credentials from environment variables
+        self.slack_token = os.getenv("SLACK_BOT_TOKEN")
+        self.channel_id = os.getenv("SLACK_CHANNEL_ID")
+        
+        if not self.slack_token or not self.channel_id:
+            missing = []
+            if not self.slack_token: missing.append("SLACK_BOT_TOKEN")
+            if not self.channel_id: missing.append("SLACK_CHANNEL_ID")
+            raise ValueError(f"Missing required Slack configuration in environment variables: {', '.join(missing)}")
+        
+        try:
+            self.client = WebClient(token=self.slack_token)
+            print("✅ Successfully initialized Slack client")
+        except Exception as e:
+            print(f"❌ Failed to initialize Slack client: {str(e)}")
+            raise
+
+    def send_message(self, message: str) -> str:
+        """
+        Send a message to the school's Slack channel.
+        
+        Args:
+            message (str): The formatted message to send
+        
+        Returns:
+            str: Status message indicating whether the message was sent successfully
+        """
+        try:
+            # Send the message to the specified channel
+            response = self.client.chat_postMessage(
+                channel=self.channel_id,
+                text=message,
+                unfurl_links=False
+            )
+            
+            if response["ok"]:
+                return "✅ Successfully sent Slack welcome message"
+            else:
+                return f"❌ Failed to send Slack message: {response['error']}"
+                
+        except Exception as e:
+            return f"❌ Error sending Slack message: {str(e)}"
 
 @tool("Email Sender")
 def send_emails(onboarding_data: str) -> str:
@@ -170,6 +218,33 @@ def send_whatsapp_message(onboarding_data: str) -> str:
     except Exception as e:
         return f"❌ Error in WhatsApp message sending process: {str(e)}"
 
+@tool("Slack Message")
+def send_slack_message(onboarding_data: str) -> str:
+    """Send welcome message to school's Slack channel about the newly appointed teacher.
+    
+    Args:
+        onboarding_data (str): JSON string containing teacher's information and message_body
+    
+    Returns:
+        str: Status message indicating whether the message was sent successfully
+    """
+    try:
+        # Parse the onboarding data
+        import json
+        data = json.loads(onboarding_data)
+        
+        if 'message_body' not in data:
+            return "❌ Error: message_body not found in onboarding data"
+        
+        # Send the Slack message
+        slack_sender = SlackMessageSenderTool()
+        result = slack_sender.send_message(data['message_body'])
+        
+        return result
+    except json.JSONDecodeError as e:
+        return f"❌ Error parsing onboarding data: {str(e)}"
+    except Exception as e:
+        return f"❌ Error in send_slack_message: {str(e)}"
 
 # Define Agents
 recruitment_agent = Agent(
@@ -226,7 +301,7 @@ finalization_agent = Agent(
     3. Management structure details (generate appropriate details for):
        - Direct supervisor's information (Mrs. Jane Smith, Head of Mathematics Department, jane.smith@glorylinkschools.com)
        - Department admin's information (Mr. Mark Johnson, mark.johnson@glorylinkschools.com)
-       - Team meeting schedule (every Monday at 3:00 PM)
+       - Team meetings: every Monday at 3:00 PM)
        - Mentoring program details (if applicable)
     4. Next steps and important dates:
        - First day orientation: Monday, February 24, 2025, 9:00 AM
@@ -248,7 +323,7 @@ finalization_agent = Agent(
     Tel: +2348083647531
     """,
     llm=llm,
-    tools=[send_emails, send_whatsapp_message],
+    tools=[send_emails, send_whatsapp_message, send_slack_message],
     allow_delegation=False,
     verbose=True
 )
@@ -346,15 +421,23 @@ finalize_onboarding_task = Task(
     2. Send a WhatsApp message with the following format:
        "🎉 Congratulations [Teacher Name]! Your onboarding to Glorylink Schools is complete. We've sent a detailed welcome package to your email ([Email Address]). Please check it for important information about your role and next steps. We're excited to have you join our team! 🌟"
     
-    For both communications:
+    3. Send a Slack announcement to the school channel that:
+       - Introduces the new teacher to the school community
+       - Highlights their background and expertise
+       - Creates excitement about their addition to the team
+       - Uses appropriate Slack formatting and emojis
+       - Encourages a warm welcome from colleagues
+    
+    For all communications:
     1. Use the teacher's information from the gather_info_task output
     2. Use the send_emails tool for email (pass a JSON with 'email' and 'email_body')
     3. Use the send_whatsapp_message tool for WhatsApp (pass a JSON with 'phone_number' and 'message_body')
+    4. Use the send_slack_message tool for Slack (pass a JSON with 'message_body')
     
     Ensure ALL placeholder text is replaced with actual information from the previous tasks.""",
     context=[gather_info_task, assign_role_task, provide_resources_task],
     agent=finalization_agent,
-    expected_output="Confirmation of completed onboarding with detailed welcome email and WhatsApp message sent"
+    expected_output="Confirmation of completed onboarding with detailed welcome email, WhatsApp message, and Slack announcement sent"
 )
 
 def create_onboarding_crew():
@@ -418,24 +501,31 @@ if __name__ == "__main__":
     teachers_to_onboard = [
         {
             "name": "Lambe Boluwatife",
-            "subject": "Mathematics",
+            "subject": "Software Engineer",
             "experience": "5 years",
             "email": "danibholie@gmail.com",
             "phone_number": "+2348083647531"
         },
         {
-            "name": "John Smith",
-            "subject": "Physics",
-            "experience": "3 years",
-            "email": "john.smith@gmail.com",
-            "phone_number": "+2348012345678"
+            "name": " Sowunmi Mayowa",
+            "subject": "Software Engineer Developer",
+            "experience": "10 years",
+            "email": "msowunmi@ovabor.xyz",
+            "phone_number": "+2348128908139"
         },
         {
-            "name": "Sarah Johnson",
-            "subject": "Chemistry",
+            "name": "Mr. Alex",
+            "subject": "Software Engineer",
             "experience": "7 years",
-            "email": "sarah.j@gmail.com",
-            "phone_number": "+2348087654321"
+            "email": "alex@ovabor.com",
+            "phone_number": "+2347088846554"
+        },
+        {
+            "name": "Adedeji Adeleke",
+            "subject": "Art",
+            "experience": "7 years",
+            "email": "adedejiadeleke@ovabor.com",
+            "phone_number": "+2347088846554"
         }
     ]
     
