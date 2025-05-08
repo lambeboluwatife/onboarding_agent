@@ -499,27 +499,27 @@ def onboard_teachers(teachers_list):
 # Example usage with multiple teachers
 if __name__ == "__main__":
     teachers_to_onboard = [
-        {
-            "name": "Lambe Boluwatife",
-            "subject": "Software Engineer",
-            "experience": "5 years",
-            "email": "danibholie@gmail.com",
-            "phone_number": "+2348083647531"
-        },
-        {
-            "name": " Sowunmi Mayowa",
-            "subject": "Software Engineer Developer",
-            "experience": "10 years",
-            "email": "msowunmi@ovabor.xyz",
-            "phone_number": "+2348128908139"
-        },
-        {
-            "name": "Mr. Alex",
-            "subject": "Software Engineer",
-            "experience": "7 years",
-            "email": "alex@ovabor.com",
-            "phone_number": "+2347088846554"
-        },
+        # {
+        #     "name": "Lambe Boluwatife",
+        #     "subject": "Software Engineer",
+        #     "experience": "5 years",
+        #     "email": "danibholie@gmail.com",
+        #     "phone_number": "+2348083647531"
+        # },
+        # {
+        #     "name": " Sowunmi Mayowa",
+        #     "subject": "Software Engineer Developer",
+        #     "experience": "10 years",
+        #     "email": "msowunmi@ovabor.xyz",
+        #     "phone_number": "+2348128908139"
+        # },
+        # {
+        #     "name": "Mr. Alex",
+        #     "subject": "Software Engineer",
+        #     "experience": "7 years",
+        #     "email": "alex@ovabor.com",
+        #     "phone_number": "+2347088846554"
+        # },
         {
             "name": "Adedeji Adeleke",
             "subject": "Art",
